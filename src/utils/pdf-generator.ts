@@ -31,21 +31,38 @@ export const generateChecklistPDF = async (
       (el as HTMLElement).style.display = 'none';
     });
 
-    const canvas = await html2canvas(element, {
+    // Create a copy of the element with better styling for PDF
+    const clonedElement = element.cloneNode(true) as HTMLElement;
+    clonedElement.style.width = '210mm'; // A4 width
+    clonedElement.style.maxWidth = '210mm';
+    clonedElement.style.backgroundColor = '#ffffff';
+    clonedElement.style.padding = '20px';
+    clonedElement.style.fontFamily = 'Arial, sans-serif';
+
+    // Temporarily add to DOM for canvas generation
+    clonedElement.style.position = 'absolute';
+    clonedElement.style.left = '-9999px';
+    clonedElement.style.top = '0';
+    document.body.appendChild(clonedElement);
+
+    const canvas = await html2canvas(clonedElement, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
-      height: element.scrollHeight,
-      windowHeight: element.scrollHeight,
+      width: 794, // A4 width in pixels at 96 DPI
+      windowWidth: 794,
+      logging: false,
     });
+
+    // Remove cloned element
+    document.body.removeChild(clonedElement);
 
     // Restore hidden elements
     elementsToHide.forEach((el) => {
       (el as HTMLElement).style.display = '';
     });
 
-    const imgData = canvas.toDataURL('image/png', quality);
     const pdf = new jsPDF({
       orientation,
       unit: 'mm',
@@ -56,84 +73,159 @@ export const generateChecklistPDF = async (
     const pdfHeight = pdf.internal.pageSize.getHeight();
     const imgWidth = canvas.width;
     const imgHeight = canvas.height;
-    const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-    const imgX = (pdfWidth - imgWidth * ratio) / 2;
 
-    // Add title page
-    pdf.setFontSize(20);
-    pdf.text(checklist.title, pdfWidth / 2, 30, { align: 'center' });
+    // Calculate scaling to fit width with margins
+    const maxWidth = pdfWidth - 20; // 10mm margins on each side
+    const scale = maxWidth / (imgWidth * 0.264583); // Convert pixels to mm
+    const scaledHeight = imgHeight * 0.264583 * scale;
 
+    // Create cover page
+    pdf.setFontSize(24);
+    pdf.setFont('helvetica', 'bold');
+
+    // Title
+    const titleLines = pdf.splitTextToSize(checklist.title, pdfWidth - 40);
+    let yPosition = 40;
+    titleLines.forEach((line: string) => {
+      pdf.text(line, pdfWidth / 2, yPosition, { align: 'center' });
+      yPosition += 12;
+    });
+
+    // Description
     if (checklist.description) {
+      yPosition += 10;
       pdf.setFontSize(12);
-      pdf.text(checklist.description, pdfWidth / 2, 50, { align: 'center' });
+      pdf.setFont('helvetica', 'normal');
+      const descLines = pdf.splitTextToSize(
+        checklist.description,
+        pdfWidth - 40
+      );
+      descLines.forEach((line: string) => {
+        pdf.text(line, pdfWidth / 2, yPosition, { align: 'center' });
+        yPosition += 6;
+      });
     }
 
-    pdf.setFontSize(10);
+    // Statistics
+    yPosition += 20;
+    const completedItems = checklist.items.filter(
+      (item) => item.status === 'completed'
+    ).length;
+    const inProgressItems = checklist.items.filter(
+      (item) => item.status === 'in-progress'
+    ).length;
+    const notStartedItems = checklist.items.filter(
+      (item) => item.status === 'not-started'
+    ).length;
+
+    pdf.setFontSize(14);
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('ISTATISTIKLER', pdfWidth / 2, yPosition, { align: 'center' });
+
+    yPosition += 15;
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'normal');
+
+    const stats = [
+      `Toplam Madde: ${checklist.items.length}`,
+      `Tamamlanan: ${completedItems}`,
+      `Devam Eden: ${inProgressItems}`,
+      `Baslanmamis: ${notStartedItems}`,
+      `Tamamlanma Orani: %${
+        Math.round((completedItems / checklist.items.length) * 100) || 0
+      }`,
+    ];
+
+    stats.forEach((stat) => {
+      pdf.text(stat, pdfWidth / 2, yPosition, { align: 'center' });
+      yPosition += 8;
+    });
+
+    // Dates
+    yPosition = pdfHeight - 30;
+    pdf.setFontSize(9);
+    pdf.setTextColor(100);
     pdf.text(
-      `Oluşturulma Tarihi: ${checklist.createdAt.toLocaleDateString('tr-TR')}`,
-      20,
-      pdfHeight - 20
+      `Olusturulma: ${checklist.createdAt.toLocaleDateString('tr-TR')}`,
+      10,
+      yPosition
     );
     pdf.text(
-      `Güncelleme Tarihi: ${checklist.updatedAt.toLocaleDateString('tr-TR')}`,
-      20,
-      pdfHeight - 10
+      `Son Guncelleme: ${checklist.updatedAt.toLocaleDateString('tr-TR')}`,
+      10,
+      yPosition + 5
     );
 
-    // Check if we need multiple pages
-    const totalPDFHeight = imgHeight * ratio;
-    if (totalPDFHeight > pdfHeight - 60) {
-      // Multiple pages needed
-      let position = 60;
-      let remainingHeight = totalPDFHeight;
+    // Add generation timestamp
+    pdf.text(
+      `PDF Olusturulma: ${new Date().toLocaleString('tr-TR')}`,
+      10,
+      yPosition + 10
+    );
+
+    // Add new page for content
+    pdf.addPage();
+    pdf.setTextColor(0); // Reset text color
+
+    // Add content with proper page breaks
+    const pageHeight = pdfHeight - 30; // Leave margin at bottom
+    const contentStartY = 10;
+
+    if (scaledHeight <= pageHeight) {
+      // Single page content
+      const imgData = canvas.toDataURL('image/png', quality);
+      pdf.addImage(imgData, 'PNG', 10, contentStartY, maxWidth, scaledHeight);
+    } else {
+      // Multi-page content
+      const pixelsPerMM = imgHeight / scaledHeight;
+      const pageHeightInPixels = pageHeight * pixelsPerMM;
       let sourceY = 0;
+      let currentPageY = contentStartY;
 
-      while (remainingHeight > 0) {
-        const pageHeight = Math.min(remainingHeight, pdfHeight - position);
-        const sourceHeight = pageHeight / ratio;
+      while (sourceY < imgHeight) {
+        const remainingHeight = imgHeight - sourceY;
+        const currentPageHeight = Math.min(pageHeightInPixels, remainingHeight);
 
-        // Create canvas for this page section
+        // Create canvas for current page section
         const pageCanvas = document.createElement('canvas');
         pageCanvas.width = imgWidth;
-        pageCanvas.height = sourceHeight;
-        const pageCtx = pageCanvas.getContext('2d');
+        pageCanvas.height = currentPageHeight;
+        const ctx = pageCanvas.getContext('2d');
 
-        if (pageCtx) {
-          pageCtx.drawImage(
+        if (ctx) {
+          ctx.drawImage(
             canvas,
             0,
-            sourceY,
+            sourceY, // Source
             imgWidth,
-            sourceHeight,
+            currentPageHeight,
             0,
-            0,
+            0, // Destination
             imgWidth,
-            sourceHeight
+            currentPageHeight
           );
-          const pageImgData = pageCanvas.toDataURL('image/png', quality);
 
-          if (position > 60) {
-            pdf.addPage();
-            position = 20;
-          }
+          const pageImgData = pageCanvas.toDataURL('image/png', quality);
+          const pageHeightMM = currentPageHeight / pixelsPerMM;
 
           pdf.addImage(
             pageImgData,
             'PNG',
-            imgX,
-            position,
-            imgWidth * ratio,
-            pageHeight
+            10,
+            currentPageY,
+            maxWidth,
+            pageHeightMM
           );
-        }
 
-        sourceY += sourceHeight;
-        remainingHeight -= pageHeight;
-        position = 20; // For subsequent pages
+          sourceY += currentPageHeight;
+
+          // Add new page if there's more content
+          if (sourceY < imgHeight) {
+            pdf.addPage();
+            currentPageY = contentStartY;
+          }
+        }
       }
-    } else {
-      // Single page
-      pdf.addImage(imgData, 'PNG', imgX, 60, imgWidth * ratio, totalPDFHeight);
     }
 
     pdf.save(filename);
@@ -155,40 +247,71 @@ export const downloadPDFSummary = (checklist: Checklist): void => {
   );
 
   const summary = `
-    Checklist Özeti
-    
-    Başlık: ${checklist.title}
-    ${checklist.description ? `Açıklama: ${checklist.description}` : ''}
-    
-    İstatistikler:
-    - Toplam Madde: ${checklist.items.length}
-    - Tamamlanan: ${completedItems.length}
-    - Devam Eden: ${inProgressItems.length}
-    - Başlanmamış: ${notStartedItems.length}
-    
-    Tamamlanan Maddeler:
-    ${completedItems.map((item) => `• ${item.title}`).join('\n    ')}
-    
-    Devam Eden Maddeler:
-    ${inProgressItems
-      .map(
-        (item) =>
-          `• ${item.title}${item.reason ? ` (Neden: ${item.reason})` : ''}`
-      )
-      .join('\n    ')}
-    
-    Başlanmamış Maddeler:
-    ${notStartedItems.map((item) => `• ${item.title}`).join('\n    ')}
-    
-    Oluşturulma Tarihi: ${checklist.createdAt.toLocaleDateString('tr-TR')}
-    Son Güncelleme: ${checklist.updatedAt.toLocaleDateString('tr-TR')}
+📋 CHECKLIST ÖZETİ
+═══════════════════════════════════════
+
+📝 Başlık: ${checklist.title}
+${checklist.description ? `📄 Açıklama: ${checklist.description}\n` : ''}
+📊 İSTATİSTİKLER
+═══════════════════════════════════════
+📋 Toplam Madde: ${checklist.items.length}
+✅ Tamamlanan: ${completedItems.length}
+🔄 Devam Eden: ${inProgressItems.length}
+⏳ Başlanmamış: ${notStartedItems.length}
+📈 Tamamlanma Oranı: %${
+    Math.round((completedItems.length / checklist.items.length) * 100) || 0
+  }
+
+✅ TAMAMLANAN MADDELER
+═══════════════════════════════════════
+${
+  completedItems.length > 0
+    ? completedItems
+        .map((item, index) => `${index + 1}. ✅ ${item.title}`)
+        .join('\n')
+    : 'Henüz tamamlanan madde yok.'
+}
+
+🔄 DEVAM EDEN MADDELER
+═══════════════════════════════════════
+${
+  inProgressItems.length > 0
+    ? inProgressItems
+        .map(
+          (item, index) =>
+            `${index + 1}. 🔄 ${item.title}${
+              item.reason ? `\n   💬 Neden: ${item.reason}` : ''
+            }`
+        )
+        .join('\n')
+    : 'Devam eden madde yok.'
+}
+
+⏳ BAŞLANMAMIŞ MADDELER
+═══════════════════════════════════════
+${
+  notStartedItems.length > 0
+    ? notStartedItems
+        .map((item, index) => `${index + 1}. ⏳ ${item.title}`)
+        .join('\n')
+    : 'Başlanmamış madde yok.'
+}
+
+📅 TARİH BİLGİLERİ
+═══════════════════════════════════════
+🗓️ Oluşturulma: ${checklist.createdAt.toLocaleString('tr-TR')}
+🔄 Son Güncelleme: ${checklist.updatedAt.toLocaleString('tr-TR')}
+📄 Özet Oluşturulma: ${new Date().toLocaleString('tr-TR')}
+
+═══════════════════════════════════════
+Bu özet Checklist Uygulaması tarafından otomatik olarak oluşturulmuştur.
   `;
 
   const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${checklist.title}_ozet.txt`;
+  link.download = `${checklist.title.replace(/[^a-zA-Z0-9]/g, '_')}_ozet.txt`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

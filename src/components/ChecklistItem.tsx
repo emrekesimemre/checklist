@@ -233,7 +233,7 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
               <Typography variant="subtitle2" gutterBottom>
                 Görseller:
               </Typography>
-              <ImageList variant="quilted" cols={3} rowHeight={120}>
+              <ImageList variant="quilted" cols={2} rowHeight={120}>
                 {item.images.map((image) => (
                   <ImageListItem key={image.id}>
                     <Box
