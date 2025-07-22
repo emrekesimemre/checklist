@@ -355,7 +355,7 @@ export default function ChecklistDetailPage({
             variant="outlined"
             value={newItemTitle}
             onChange={(e) => setNewItemTitle(e.target.value)}
-            placeholder="Örn: Mutfağı temizle"
+            placeholder="Örn: Şantiye ilerleme durumu iş programına göre uygun mu?"
           />
           <TextField
             margin="dense"

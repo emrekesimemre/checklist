@@ -304,7 +304,6 @@ ${
 📄 Özet Oluşturulma: ${new Date().toLocaleString('tr-TR')}
 
 ═══════════════════════════════════════
-Bu özet Checklist Uygulaması tarafından otomatik olarak oluşturulmuştur.
   `;
 
   const blob = new Blob([summary], { type: 'text/plain;charset=utf-8' });

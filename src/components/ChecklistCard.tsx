@@ -40,6 +40,10 @@ export const ChecklistCard: React.FC<ChecklistCardProps> = ({
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const { getChecklistProgress } = useChecklistStore();
 
+  const isStarted = checklist.items.some(
+    (item) => item.status === 'in-progress' || item.status === 'completed'
+  );
+
   const progress = getChecklistProgress(checklist.id);
   const progressPercentage =
     progress.total > 0 ? (progress.completed / progress.total) * 100 : 0;
@@ -59,8 +63,7 @@ export const ChecklistCard: React.FC<ChecklistCardProps> = ({
   };
 
   const getStatusText = () => {
-    if (progressPercentage === 100) return 'Tamamlandı';
-    if (progressPercentage > 0) return 'Devam Ediyor';
+    if (isStarted) return 'Devam Ediyor';
     return 'Başlanmadı';
   };
 
@@ -116,14 +119,16 @@ export const ChecklistCard: React.FC<ChecklistCardProps> = ({
               label={getStatusText()}
               size="small"
               color={
-                getStatusColor() as
-                  | 'default'
-                  | 'primary'
-                  | 'secondary'
-                  | 'error'
-                  | 'info'
-                  | 'success'
-                  | 'warning'
+                isStarted
+                  ? 'warning'
+                  : (getStatusColor() as
+                      | 'default'
+                      | 'primary'
+                      | 'secondary'
+                      | 'error'
+                      | 'info'
+                      | 'success'
+                      | 'warning')
               }
               variant="outlined"
             />

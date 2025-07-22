@@ -79,11 +79,203 @@ export const useChecklistStore = create<ChecklistStore>()(
       currentChecklist: null,
 
       createChecklist: (title: string, description?: string) => {
+        // Default checklist items
+        const defaultItems: ChecklistItem[] = [
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Bina rögar kotu, pis su borularının çap ve eğim kontrolü, ofis alanlarından geçen pissu borularının ses izolasyonu yapıldı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title: 'Şantiye ilerleme durumu iş programına göre uygun mu?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Mimari/mekanik/elektrik projelerinin süperpoze kontrolünün yapıldı mı, yerleşimi etkileyen konularla ilgili kontrol onayı alındı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Saha ve çevrenin korunması/temizliği uygun mu , yapılan imalatlar ve cihazlar korunuyor mu?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Jeneratör Set alanı periyodik bakımların yapılabilmesi için yeterli  mi? Sıcak hava atışı için davlumbaz kanalı, taze hava menfezi ve egzoz gazı borusu uygun ölçülerde ve çevreye rahatsızlık vermeyecek şekilde yapıldı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Havalandırma kanal güzergahları projeye uygun mu, kanal kesit ölçüleri doğru mu?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Radyatörlerin  pe-x veya pprc hatları ile birlikte montaj yerlerinin projeye göre uygunluğu kontrol edildi mi?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Klima grubu bakır boru hatları ve cihaz montaj yerlerinin projeye göre uygunluğu kontrol edildi mi?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Klima drenaj hatları (sert PVC) yağmur gideri veya drenaj çukuruna verildi mi? Hatların klima bağlantı noktaları, eğim kontrolü ve yoğuşmaya karşı kauçuk izolasyon yapıldı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'VRV dış ünite yeri kontrol edildi mi? Dış ünite altına çelik kaide ve drenaj tavası yapıldı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Yangın branşman hatları (galvanizli ya da siyah çelik boru) projeye göre uygun çap ve güzergahta yapıldı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Tesisat alt yapı test edildi mi (basınç değeri 4 bar)? Geçici kabul öncesi tüm sistemlerin test, ölçüm ve raporlamaları yapıldı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Kazan ve ekipmanlarının montajı,  kazan baca güzergahı ve  kazan dairesi havalandırması uygun yapıldı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Doğalgaz projesi  çalışmaları başlatıldı mı? Doğalgaz kolon ve iç tesisat hatları çeklidi mi?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title: 'Doğalgaz projesi onaylatıldı mı? Kazan devreye alındı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Yangın dolapları ,İtfaiye bağlantı ağızları ve varsa yangın sprinklerinin montajı uygun yapıldı mı? Sprink koruma plastik kapakları sökülerek sistem devreye alındı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Cihaz ve radyatör montajı için duvar kağıdı yapılacak alanlar kontrol edildi mi, montaj öncesi kağıt imalatları tamamlandı mı?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+
+          {
+            id: crypto.randomUUID(),
+            title:
+              'Kullanılan ürünlerin/cihazların  marka-modeli banka şartnamesine ve projeye uygun mu? Ürünler/Cihazlar çalışır halde teslim edildi mi?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            id: crypto.randomUUID(),
+            title: 'Varsa Projede yapılan revizyonlar kontrol edildi mi?',
+            description: '',
+            status: 'not-started',
+            images: [],
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ];
+
         const newChecklist: Checklist = {
           id: crypto.randomUUID(),
           title,
           description,
-          items: [],
+          items: defaultItems,
           createdAt: new Date(),
           updatedAt: new Date(),
           isCompleted: false,

@@ -122,6 +122,9 @@ export default function HomePage() {
             startIcon={<Add />}
             onClick={() => setIsCreateDialogOpen(true)}
             size="large"
+            sx={{
+              vis: { xs: 'none', md: 'block' },
+            }}
           >
             Yeni Checklist
           </Button>
@@ -210,7 +213,7 @@ export default function HomePage() {
             variant="outlined"
             value={newChecklistTitle}
             onChange={(e) => setNewChecklistTitle(e.target.value)}
-            placeholder="Örn: Haftalık Temizlik Listesi"
+            placeholder="Örn: Checklist 1"
           />
           <TextField
             margin="dense"
