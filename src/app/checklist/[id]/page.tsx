@@ -227,6 +227,9 @@ export default function ChecklistDetailPage({
                 variant="outlined"
                 startIcon={<Add />}
                 onClick={() => setIsAddItemDialogOpen(true)}
+                sx={{
+                  display: { xs: 'none', md: 'block' },
+                }}
               >
                 Madde Ekle
               </Button>
@@ -294,10 +297,11 @@ export default function ChecklistDetailPage({
             </Box>
           ) : (
             <Box>
-              {currentChecklist.items.map((item) => (
+              {currentChecklist.items.map((item, index) => (
                 <ChecklistItem
                   key={item.id}
                   item={item}
+                  index={index}
                   checklistId={currentChecklist.id}
                 />
               ))}

@@ -32,12 +32,14 @@ interface ChecklistItemProps {
   item: ChecklistItemType;
   checklistId: string;
   readOnly?: boolean;
+  index: number;
 }
 
 export const ChecklistItem: React.FC<ChecklistItemProps> = ({
   item,
   checklistId,
   readOnly = false,
+  index,
 }) => {
   const [reason, setReason] = useState(item.reason || '');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
@@ -139,7 +141,7 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
           >
             <Box flex={1}>
               <Typography variant="h6" gutterBottom>
-                {item.title}
+                {index + 1}. {item.title}
               </Typography>
               {item.description && (
                 <Typography variant="body2" color="text.secondary" gutterBottom>
