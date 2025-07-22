@@ -123,7 +123,7 @@ export default function HomePage() {
             onClick={() => setIsCreateDialogOpen(true)}
             size="large"
             sx={{
-              vis: { xs: 'none', md: 'block' },
+              display: { xs: 'none', md: 'block' },
             }}
           >
             Yeni Checklist
