@@ -297,7 +297,15 @@ ${
     : 'Başlanmamış madde yok.'
 }
 
-📅 TARİH BİLGİLERİ
+${
+  checklist.notes
+    ? `📝 GENEL NOTLAR VE AÇIKLAMALAR
+═══════════════════════════════════════
+${checklist.notes}
+
+`
+    : ''
+}📅 TARİH BİLGİLERİ
 ═══════════════════════════════════════
 🗓️ Oluşturulma: ${checklist.createdAt.toLocaleString('tr-TR')}
 🔄 Son Güncelleme: ${checklist.updatedAt.toLocaleString('tr-TR')}

@@ -28,6 +28,9 @@ import {
   PictureAsPdf,
   FileDownload,
   ChecklistRtl,
+  Edit,
+  Save,
+  Cancel,
 } from '@mui/icons-material';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChecklistItem } from '../../../components/ChecklistItem';
@@ -61,12 +64,15 @@ export default function ChecklistDetailPage({
     message: '',
     severity: 'success',
   });
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [notesValue, setNotesValue] = useState('');
 
   const {
     currentChecklist,
     setCurrentChecklist,
     addItem,
     getChecklistProgress,
+    updateChecklistNotes,
   } = useChecklistStore();
 
   const handleExportPDF = useCallback(async () => {
@@ -103,6 +109,12 @@ export default function ChecklistDetailPage({
     }
   }, [searchParams, currentChecklist, handleExportPDF]);
 
+  useEffect(() => {
+    if (currentChecklist) {
+      setNotesValue(currentChecklist.notes || '');
+    }
+  }, [currentChecklist]);
+
   const handleAddItem = () => {
     if (newItemTitle.trim() && currentChecklist) {
       addItem(
@@ -119,6 +131,23 @@ export default function ChecklistDetailPage({
         severity: 'success',
       });
     }
+  };
+
+  const handleSaveNotes = () => {
+    if (currentChecklist) {
+      updateChecklistNotes(currentChecklist.id, notesValue);
+      setIsEditingNotes(false);
+      setSnackbar({
+        open: true,
+        message: 'Notlar başarıyla kaydedildi!',
+        severity: 'success',
+      });
+    }
+  };
+
+  const handleCancelNotes = () => {
+    setNotesValue(currentChecklist?.notes || '');
+    setIsEditingNotes(false);
   };
 
   const handleDownloadSummary = () => {
@@ -307,6 +336,98 @@ export default function ChecklistDetailPage({
               ))}
             </Box>
           )}
+
+          {/* Notes Section - Now inside the PDF content area */}
+          <Divider sx={{ my: 3 }} />
+          <Box>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+              mb={2}
+            >
+              <Typography variant="h6">Genel Notlar ve Açıklamalar</Typography>
+              {!isEditingNotes && (
+                <IconButton
+                  onClick={() => setIsEditingNotes(true)}
+                  size="small"
+                  data-pdf-hide
+                >
+                  <Edit />
+                </IconButton>
+              )}
+            </Box>
+
+            {isEditingNotes ? (
+              <Box data-pdf-hide>
+                <TextField
+                  fullWidth
+                  multiline
+                  rows={6}
+                  variant="outlined"
+                  value={notesValue}
+                  onChange={(e) => setNotesValue(e.target.value)}
+                  placeholder="Bu checklist ile ilgili genel notlarınızı, önemli açıklamalarınızı veya sonuçlarınızı buraya yazabilirsiniz..."
+                  sx={{ mb: 2 }}
+                />
+                <Box display="flex" gap={1} justifyContent="flex-end">
+                  <Button
+                    variant="outlined"
+                    startIcon={<Cancel />}
+                    onClick={handleCancelNotes}
+                  >
+                    İptal
+                  </Button>
+                  <Button
+                    variant="contained"
+                    startIcon={<Save />}
+                    onClick={handleSaveNotes}
+                  >
+                    Kaydet
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              <Box>
+                {currentChecklist.notes ? (
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      whiteSpace: 'pre-wrap',
+                      minHeight: '60px',
+                      p: 2,
+                      backgroundColor: 'grey.50',
+                      borderRadius: 1,
+                      border: '1px solid',
+                      borderColor: 'grey.200',
+                    }}
+                  >
+                    {currentChecklist.notes}
+                  </Typography>
+                ) : (
+                  <Box
+                    sx={{
+                      minHeight: '60px',
+                      p: 2,
+                      backgroundColor: 'grey.50',
+                      borderRadius: 1,
+                      border: '1px dashed',
+                      borderColor: 'grey.300',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    data-pdf-hide
+                  >
+                    <Typography variant="body2" color="text.secondary">
+                      Henüz not eklenmemiş. Genel notlar eklemek için düzenle
+                      butonuna tıklayın.
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Box>
 
           {/* Footer Info */}
           <Divider sx={{ my: 3 }} />

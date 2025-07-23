@@ -10,6 +10,7 @@ interface ChecklistStore {
   createChecklist: (title: string, description?: string) => void;
   deleteChecklist: (id: string) => void;
   setCurrentChecklist: (id: string) => void;
+  updateChecklistNotes: (checklistId: string, notes: string) => void; // New function
 
   addItem: (checklistId: string, title: string, description?: string) => void;
   updateItemStatus: (
@@ -300,6 +301,28 @@ export const useChecklistStore = create<ChecklistStore>()(
         if (checklist) {
           set({ currentChecklist: normalizeChecklist(checklist) });
         }
+      },
+
+      updateChecklistNotes: (checklistId: string, notes: string) => {
+        set((state) => ({
+          checklists: state.checklists.map((checklist) =>
+            checklist.id === checklistId
+              ? {
+                  ...checklist,
+                  notes,
+                  updatedAt: new Date(),
+                }
+              : checklist
+          ),
+          currentChecklist:
+            state.currentChecklist?.id === checklistId
+              ? {
+                  ...state.currentChecklist,
+                  notes,
+                  updatedAt: new Date(),
+                }
+              : state.currentChecklist,
+        }));
       },
 
       addItem: (checklistId: string, title: string, description?: string) => {

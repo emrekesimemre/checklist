@@ -21,6 +21,7 @@ export interface Checklist {
   id: string;
   title: string;
   description?: string;
+  notes?: string; // Checklist sonundaki genel notlar
   items: ChecklistItem[];
   createdAt: Date;
   updatedAt: Date;
