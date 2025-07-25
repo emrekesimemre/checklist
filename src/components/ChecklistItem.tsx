@@ -235,17 +235,13 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
               <Typography variant="subtitle2" gutterBottom>
                 Görseller:
               </Typography>
-              <ImageList
-                variant="quilted"
-                cols={item.images.length == 1 ? 1 : 2}
-                rowHeight={120}
-              >
+              <ImageList variant="quilted" cols={2} rowHeight={220}>
                 {item.images.map((image) => (
                   <ImageListItem key={image.id}>
                     <Box
                       sx={{
                         width: '100%',
-                        height: '120px',
+                        height: '220px',
                         position: 'relative',
                         cursor: 'pointer',
                       }}

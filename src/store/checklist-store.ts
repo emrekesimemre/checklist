@@ -85,7 +85,7 @@ export const useChecklistStore = create<ChecklistStore>()(
           {
             id: crypto.randomUUID(),
             title:
-              'Bina rögar kotu, pis su borularının çap ve eğim kontrolü, ofis alanlarından geçen pissu borularının ses izolasyonu yapıldı mı?',
+              'Bina rögar kotu, pis su borularının çap ve eğim kontrolü, ofis alanlarından geçen pis su borularının ses izolasyonu yapıldı mı?',
             description: '',
             status: 'not-started',
             images: [],
