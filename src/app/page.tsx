@@ -97,7 +97,7 @@ export default function HomePage() {
   };
 
   return (
-    <>
+    <Box>
       <AppBar position="static" elevation={1}>
         <Toolbar>
           <ChecklistRtl sx={{ mr: 2 }} />
@@ -254,6 +254,6 @@ export default function HomePage() {
           {snackbar.message}
         </Alert>
       </Snackbar>
-    </>
+    </Box>
   );
 }

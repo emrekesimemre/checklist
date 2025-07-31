@@ -1,8 +1,9 @@
 'use client';
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline } from '@mui/material';
+import { CssBaseline, Box } from '@mui/material';
 import { theme } from '../theme/theme';
+import Footer from '../components/footer';
 
 export default function RootLayout({
   children,
@@ -14,7 +15,16 @@ export default function RootLayout({
       <body>
         <ThemeProvider theme={theme}>
           <CssBaseline />
-          {children}
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: '100vh',
+            }}
+          >
+            <Box sx={{ flex: 1 }}>{children}</Box>
+            <Footer />
+          </Box>
           <Analytics />
         </ThemeProvider>
       </body>
