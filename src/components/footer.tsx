@@ -16,7 +16,7 @@ const Footer = () => {
     >
       <Stack spacing={1}>
         <Typography variant="body2" color="text.secondary">
-          &copy; {new Date().getFullYear()} Checklist Uygulaması ·{' '}
+          &copy; 2025 Checklist Uygulaması ·{' '}
           <Link
             href="https://github.com/emrekesimemre"
             underline="hover"
