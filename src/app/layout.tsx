@@ -11,8 +11,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr">
-      <body>
+    <html lang="tr" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <Box

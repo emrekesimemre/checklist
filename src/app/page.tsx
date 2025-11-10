@@ -9,6 +9,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   TextField,
   Fab,
@@ -17,11 +18,13 @@ import {
   Alert,
   Snackbar,
 } from '@mui/material';
-import { Add, ChecklistRtl } from '@mui/icons-material';
+import { Add, ChecklistRtl, Assessment, BarChart } from '@mui/icons-material';
 import { ChecklistCard } from '../components/ChecklistCard';
 import { useChecklistStore } from '../store/checklist-store';
 import { Checklist } from '../types/checklist';
 import { useRouter } from 'next/navigation';
+import { Card, CardContent } from '@mui/material';
+import Link from 'next/link';
 
 export default function HomePage() {
   const router = useRouter();
@@ -37,6 +40,10 @@ export default function HomePage() {
     message: '',
     severity: 'success',
   });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingChecklist, setDeletingChecklist] = useState<Checklist | null>(
+    null
+  );
 
   const { checklists, createChecklist, deleteChecklist, setCurrentChecklist } =
     useChecklistStore();
@@ -63,19 +70,22 @@ export default function HomePage() {
     router.push(`/checklist/${checklist.id}`);
   };
 
-  const handleDeleteChecklist = (checklist: Checklist) => {
-    if (
-      confirm(
-        `"${checklist.title}" adlı checklist'i silmek istediğinizden emin misiniz?`
-      )
-    ) {
-      deleteChecklist(checklist.id);
-      setSnackbar({
-        open: true,
-        message: 'Checklist başarıyla silindi!',
-        severity: 'success',
-      });
-    }
+  const handleDeleteChecklistClick = (checklist: Checklist) => {
+    setDeletingChecklist(checklist);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteChecklistConfirm = () => {
+    if (!deletingChecklist) return;
+
+    deleteChecklist(deletingChecklist.id);
+    setSnackbar({
+      open: true,
+      message: 'Checklist başarıyla silindi!',
+      severity: 'success',
+    });
+    setDeleteDialogOpen(false);
+    setDeletingChecklist(null);
   };
 
   const handleExportPDF = async (checklist: Checklist) => {
@@ -108,6 +118,75 @@ export default function HomePage() {
       </AppBar>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {/* Değerlendirme ve Raporlama Kartları */}
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, 1fr)',
+            },
+            gap: 3,
+            mb: 4,
+          }}
+        >
+          <Card
+            component={Link}
+            href="/evaluation"
+            sx={{
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4,
+              },
+            }}
+          >
+            <CardContent>
+              <Box display="flex" alignItems="center" mb={2}>
+                <Assessment
+                  sx={{ fontSize: 40, color: 'primary.main', mr: 2 }}
+                />
+                <Typography variant="h5" component="h2">
+                  Mekanik Değerlendirme
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                Proje firmalarını değerlendirin ve puanlayın
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card
+            component={Link}
+            href="/reports"
+            sx={{
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'transform 0.2s, box-shadow 0.2s',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 4,
+              },
+            }}
+          >
+            <CardContent>
+              <Box display="flex" alignItems="center" mb={2}>
+                <BarChart
+                  sx={{ fontSize: 40, color: 'secondary.main', mr: 2 }}
+                />
+                <Typography variant="h5" component="h2">
+                  Değerlendirme Raporları
+                </Typography>
+              </Box>
+              <Typography variant="body2" color="text.secondary">
+                Geçmiş değerlendirmeleri görüntüleyin ve analiz edin
+              </Typography>
+            </CardContent>
+          </Card>
+        </Box>
+
         <Box
           display="flex"
           justifyContent="space-between"
@@ -173,7 +252,7 @@ export default function HomePage() {
                 key={checklist.id}
                 checklist={checklist}
                 onView={handleViewChecklist}
-                onDelete={handleDeleteChecklist}
+                onDelete={handleDeleteChecklistClick}
                 onExportPDF={handleExportPDF}
               />
             ))}
@@ -236,6 +315,40 @@ export default function HomePage() {
             disabled={!newChecklistTitle.trim()}
           >
             Oluştur
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Checklist Silme Onay Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDeletingChecklist(null);
+        }}
+      >
+        <DialogTitle>Checklist'i Sil</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            &quot;{deletingChecklist?.title}&quot; adlı checklist&apos;i silmek
+            istediğinizden emin misiniz? Bu işlem geri alınamaz.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDeleteDialogOpen(false);
+              setDeletingChecklist(null);
+            }}
+          >
+            İptal
+          </Button>
+          <Button
+            onClick={handleDeleteChecklistConfirm}
+            color="error"
+            variant="contained"
+          >
+            Sil
           </Button>
         </DialogActions>
       </Dialog>

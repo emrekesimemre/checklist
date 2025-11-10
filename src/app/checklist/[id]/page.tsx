@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, use } from 'react';
+import React, { useState, useEffect, useCallback, use, useMemo } from 'react';
 import {
   Container,
   Typography,
@@ -114,6 +114,26 @@ export default function ChecklistDetailPage({
       setNotesValue(currentChecklist.notes || '');
     }
   }, [currentChecklist]);
+
+  // Format dates on client side to avoid hydration mismatch
+  const formatDate = useCallback((date: Date | string) => {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return new Intl.DateTimeFormat('tr-TR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }).format(dateObj);
+  }, []);
+
+  const formattedCreatedAt = useMemo(() => {
+    if (!currentChecklist) return '';
+    return formatDate(currentChecklist.createdAt);
+  }, [currentChecklist, formatDate]);
+
+  const formattedUpdatedAt = useMemo(() => {
+    if (!currentChecklist) return '';
+    return formatDate(currentChecklist.updatedAt);
+  }, [currentChecklist, formatDate]);
 
   const handleAddItem = () => {
     if (newItemTitle.trim() && currentChecklist) {
@@ -437,12 +457,10 @@ export default function ChecklistDetailPage({
             alignItems="center"
           >
             <Typography variant="caption" color="text.secondary">
-              Oluşturulma:{' '}
-              {new Date(currentChecklist.createdAt).toLocaleDateString('tr-TR')}
+              Oluşturulma: {formattedCreatedAt}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              Son güncelleme:{' '}
-              {new Date(currentChecklist.updatedAt).toLocaleDateString('tr-TR')}
+              Son güncelleme: {formattedUpdatedAt}
             </Typography>
           </Box>
         </Paper>
