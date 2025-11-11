@@ -31,10 +31,17 @@ import {
   DialogContentText,
   DialogActions,
   Snackbar,
+  Skeleton,
 } from '@mui/material';
-import { ArrowBack, Assessment, Delete } from '@mui/icons-material';
+import {
+  ArrowBack,
+  Assessment,
+  Delete,
+  PictureAsPdf,
+} from '@mui/icons-material';
 import Link from 'next/link';
 import { useEvaluationStore } from '../../store/evaluation-store';
+import { generateReportsPDF } from '../../utils/pdf-generator';
 
 export default function ReportsPage() {
   const {
@@ -43,6 +50,8 @@ export default function ReportsPage() {
     fetchDegerlendirmeler,
     fetchProjeFirmalari,
     deleteDegerlendirme,
+    loadingDegerlendirmeler,
+    loadingProjeFirmalari,
   } = useEvaluationStore();
 
   const [selectedYil, setSelectedYil] = useState<number | 'all'>('all');
@@ -60,6 +69,7 @@ export default function ReportsPage() {
     message: '',
     severity: 'success',
   });
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // İlk yüklemede verileri getir
   useEffect(() => {
@@ -221,6 +231,44 @@ export default function ReportsPage() {
     }).format(date);
   };
 
+  const handleExportPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      const selectedFirmaName =
+        selectedFirma !== 'all' && selectedFirma
+          ? projeFirmalari.find((f) => f.id === selectedFirma)?.name
+          : undefined;
+
+      await generateReportsPDF({
+        degerlendirmeler: filteredDegerlendirmeler,
+        yillikOzet: yillikOzet || null,
+        yillikGenelOrtalama: yillikGenelOrtalama || null,
+        genelOrtalamaPuan: genelOrtalamaPuan || null,
+        selectedYil,
+        selectedFirma,
+        selectedFirmaName,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        projeFirmalari,
+      });
+
+      setSnackbar({
+        open: true,
+        message: 'PDF başarıyla oluşturuldu!',
+        severity: 'success',
+      });
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      setSnackbar({
+        open: true,
+        message: 'PDF oluşturulurken hata oluştu!',
+        severity: 'error',
+      });
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <Box>
       <AppBar position="static" elevation={1}>
@@ -234,6 +282,15 @@ export default function ReportsPage() {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Değerlendirme Raporları
           </Typography>
+          <Button
+            color="inherit"
+            startIcon={<PictureAsPdf />}
+            onClick={handleExportPDF}
+            disabled={isGeneratingPDF || filteredDegerlendirmeler.length === 0}
+            size="small"
+          >
+            {isGeneratingPDF ? 'Oluşturuluyor...' : 'PDF İndir'}
+          </Button>
         </Toolbar>
       </AppBar>
 
@@ -277,23 +334,27 @@ export default function ReportsPage() {
                 ))}
               </Select>
             </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>Proje Firması</InputLabel>
-              <Select
-                value={selectedFirma}
-                label="Proje Firması"
-                onChange={(e) =>
-                  setSelectedFirma(e.target.value as string | 'all')
-                }
-              >
-                <MenuItem value="all">Tüm Firmalar</MenuItem>
-                {projeFirmalari.map((firma) => (
-                  <MenuItem key={firma.id} value={firma.id}>
-                    {firma.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {loadingProjeFirmalari ? (
+              <Skeleton variant="rectangular" height={56} />
+            ) : (
+              <FormControl fullWidth>
+                <InputLabel>Proje Firması</InputLabel>
+                <Select
+                  value={selectedFirma}
+                  label="Proje Firması"
+                  onChange={(e) =>
+                    setSelectedFirma(e.target.value as string | 'all')
+                  }
+                >
+                  <MenuItem value="all">Tüm Firmalar</MenuItem>
+                  {projeFirmalari.map((firma) => (
+                    <MenuItem key={firma.id} value={firma.id}>
+                      {firma.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             <TextField
               fullWidth
               label="Başlangıç Tarihi"
@@ -332,12 +393,10 @@ export default function ReportsPage() {
         </Paper>
 
         {/* Yıllık Özet */}
-        {selectedYil !== 'all' && yillikOzet && yillikOzet.length > 0 && (
+        {loadingDegerlendirmeler ? (
           <Card sx={{ mb: 4 }}>
             <CardContent>
-              <Typography variant="h6" gutterBottom>
-                {selectedYil} Yılı Özeti - Proje Firmalarına Verilen Puanlar
-              </Typography>
+              <Skeleton variant="text" width="60%" height={32} sx={{ mb: 2 }} />
               <TableContainer>
                 <Table size="small">
                   <TableHead>
@@ -348,22 +407,24 @@ export default function ReportsPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {yillikOzet.map((ozet) => (
-                      <TableRow key={ozet.firmaId}>
-                        <TableCell>{ozet.firmaName}</TableCell>
-                        <TableCell align="right">
-                          {ozet.degerlendirmeSayisi}
+                    {Array.from({ length: 3 }).map((_, index) => (
+                      <TableRow key={`skeleton-ozet-${index}`}>
+                        <TableCell>
+                          <Skeleton variant="text" width="80%" />
                         </TableCell>
                         <TableCell align="right">
-                          <Chip
-                            label={ozet.ortalamaPuan.toFixed(2)}
-                            color={
-                              ozet.ortalamaPuan >= 8
-                                ? 'success'
-                                : ozet.ortalamaPuan >= 6
-                                ? 'warning'
-                                : 'error'
-                            }
+                          <Skeleton
+                            variant="text"
+                            width={40}
+                            sx={{ ml: 'auto' }}
+                          />
+                        </TableCell>
+                        <TableCell align="right">
+                          <Skeleton
+                            variant="rectangular"
+                            width={60}
+                            height={24}
+                            sx={{ ml: 'auto', borderRadius: 1 }}
                           />
                         </TableCell>
                       </TableRow>
@@ -371,46 +432,149 @@ export default function ReportsPage() {
                   </TableBody>
                 </Table>
               </TableContainer>
-              {yillikGenelOrtalama !== null && (
-                <Box
-                  sx={{
-                    mt: 2,
-                    pt: 2,
-                    borderTop: 1,
-                    borderColor: 'divider',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                >
-                  <Typography variant="subtitle1" fontWeight="bold">
-                    Genel Ortalama Puan:
-                  </Typography>
-                  <Chip
-                    label={yillikGenelOrtalama.toFixed(2)}
-                    color={
-                      yillikGenelOrtalama >= 8
-                        ? 'success'
-                        : yillikGenelOrtalama >= 6
-                        ? 'warning'
-                        : 'error'
-                    }
-                    sx={{ fontSize: '1rem', fontWeight: 'bold', px: 2 }}
-                  />
-                </Box>
-              )}
             </CardContent>
           </Card>
+        ) : (
+          selectedYil !== 'all' &&
+          yillikOzet &&
+          yillikOzet.length > 0 && (
+            <Card sx={{ mb: 4 }}>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  {selectedYil} Yılı Özeti - Proje Firmalarına Verilen Puanlar
+                </Typography>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Firma Adı</TableCell>
+                        <TableCell align="right">
+                          Değerlendirme Sayısı
+                        </TableCell>
+                        <TableCell align="right">Ortalama Puan</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {yillikOzet.map((ozet) => (
+                        <TableRow key={ozet.firmaId}>
+                          <TableCell>{ozet.firmaName}</TableCell>
+                          <TableCell align="right">
+                            {ozet.degerlendirmeSayisi}
+                          </TableCell>
+                          <TableCell align="right">
+                            <Chip
+                              label={ozet.ortalamaPuan.toFixed(2)}
+                              color={
+                                ozet.ortalamaPuan >= 8
+                                  ? 'success'
+                                  : ozet.ortalamaPuan >= 6
+                                  ? 'warning'
+                                  : 'error'
+                              }
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+                {yillikGenelOrtalama !== null && (
+                  <Box
+                    sx={{
+                      mt: 2,
+                      pt: 2,
+                      borderTop: 1,
+                      borderColor: 'divider',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Typography variant="subtitle1" fontWeight="bold">
+                      Genel Ortalama Puan:
+                    </Typography>
+                    <Chip
+                      label={yillikGenelOrtalama.toFixed(2)}
+                      color={
+                        yillikGenelOrtalama >= 8
+                          ? 'success'
+                          : yillikGenelOrtalama >= 6
+                          ? 'warning'
+                          : 'error'
+                      }
+                      sx={{ fontSize: '1rem', fontWeight: 'bold', px: 2 }}
+                    />
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          )
         )}
 
         {/* Değerlendirmeler Listesi */}
         <Paper elevation={2}>
           <Box p={3}>
             <Typography variant="h6" gutterBottom>
-              Değerlendirmeler ({filteredDegerlendirmeler.length})
+              {loadingDegerlendirmeler ? (
+                <Skeleton variant="text" width={200} />
+              ) : (
+                `Değerlendirmeler (${filteredDegerlendirmeler.length})`
+              )}
             </Typography>
           </Box>
-          {filteredDegerlendirmeler.length === 0 ? (
+          {loadingDegerlendirmeler ? (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>İşin Adı</TableCell>
+                    <TableCell>Proje Firması</TableCell>
+                    <TableCell align="right">Yıl</TableCell>
+                    <TableCell align="right">Tarih</TableCell>
+                    <TableCell align="right">Toplam Puan</TableCell>
+                    <TableCell align="center">İşlemler</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell>
+                        <Skeleton variant="text" width="80%" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton variant="text" width="70%" />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Skeleton
+                          variant="text"
+                          width={30}
+                          sx={{ ml: 'auto' }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Skeleton
+                          variant="text"
+                          width={60}
+                          sx={{ ml: 'auto' }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Skeleton
+                          variant="rectangular"
+                          width={60}
+                          height={24}
+                          sx={{ ml: 'auto', borderRadius: 1 }}
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Skeleton variant="circular" width={32} height={32} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : filteredDegerlendirmeler.length === 0 ? (
             <Box p={4} textAlign="center">
               <Alert severity="info">
                 Seçilen kriterlere uygun değerlendirme bulunamadı.
@@ -465,7 +629,8 @@ export default function ReportsPage() {
               </Table>
             </TableContainer>
           )}
-          {genelOrtalamaPuan !== null &&
+          {!loadingDegerlendirmeler &&
+            genelOrtalamaPuan !== null &&
             filteredDegerlendirmeler.length > 0 && (
               <Box
                 sx={{
