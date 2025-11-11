@@ -26,8 +26,10 @@ import {
   Chip,
   AppBar,
   Toolbar,
-  Slider,
   Stack,
+  Select,
+  MenuItem,
+  Skeleton,
 } from '@mui/material';
 import {
   Add,
@@ -54,6 +56,8 @@ export default function EvaluationPage() {
     updateKonu,
     deleteKonu,
     createDegerlendirme,
+    loadingProjeFirmalari,
+    loadingKonular,
   } = useEvaluationStore();
 
   // İlk yüklemede verileri getir
@@ -338,26 +342,34 @@ export default function EvaluationPage() {
                 required
                 sx={{ flex: 1, minWidth: 200 }}
               />
-              <Autocomplete
-                options={projeFirmalari}
-                getOptionLabel={(option) => option.name}
-                value={
-                  projeFirmalari.find((f) => f.id === selectedFirma) || null
-                }
-                onChange={(_, newValue) =>
-                  setSelectedFirma(newValue?.id || null)
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Proje Firması"
-                    required
-                    sx={{ flex: 1, minWidth: 200 }}
-                  />
-                )}
-                sx={{ flex: 1, minWidth: 200 }}
-                noOptionsText="Firma bulunamadı"
-              />
+              {loadingProjeFirmalari ? (
+                <Skeleton
+                  variant="rectangular"
+                  height={56}
+                  sx={{ flex: 1, minWidth: 200, borderRadius: 1 }}
+                />
+              ) : (
+                <Autocomplete
+                  options={projeFirmalari}
+                  getOptionLabel={(option) => option.name}
+                  value={
+                    projeFirmalari.find((f) => f.id === selectedFirma) || null
+                  }
+                  onChange={(_, newValue) =>
+                    setSelectedFirma(newValue?.id || null)
+                  }
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Proje Firması"
+                      required
+                      sx={{ flex: 1, minWidth: 200 }}
+                    />
+                  )}
+                  sx={{ flex: 1, minWidth: 200 }}
+                  noOptionsText="Firma bulunamadı"
+                />
+              )}
               <Button
                 variant="outlined"
                 startIcon={<Add />}
@@ -407,7 +419,39 @@ export default function EvaluationPage() {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {sortedKonular.length === 0 ? (
+                    {loadingKonular ? (
+                      Array.from({ length: 5 }).map((_, index) => (
+                        <TableRow key={`skeleton-${index}`}>
+                          <TableCell>
+                            <Skeleton variant="text" width={30} />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton variant="text" width="80%" />
+                          </TableCell>
+                          <TableCell>
+                            <Skeleton
+                              variant="rectangular"
+                              width={100}
+                              height={40}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Box display="flex" gap={1}>
+                              <Skeleton
+                                variant="circular"
+                                width={32}
+                                height={32}
+                              />
+                              <Skeleton
+                                variant="circular"
+                                width={32}
+                                height={32}
+                              />
+                            </Box>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : sortedKonular.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={4} align="center">
                           <Typography color="text.secondary" py={2}>
@@ -421,22 +465,28 @@ export default function EvaluationPage() {
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>{konu.title}</TableCell>
                           <TableCell>
-                            <Box sx={{ px: 2 }}>
-                              <Slider
+                            <Box display="flex" justifyContent="flex-start">
+                              <Select
                                 value={puanlar.get(konu.id) || 0}
-                                onChange={(_, value) =>
-                                  handlePuanChange(konu.id, value as number)
+                                onChange={(e) =>
+                                  handlePuanChange(
+                                    konu.id,
+                                    e.target.value as number
+                                  )
                                 }
-                                min={0}
-                                max={10}
-                                step={0.5}
-                                marks
-                                valueLabelDisplay="auto"
-                                sx={{ mb: 1 }}
-                              />
-                              <Typography variant="body2" textAlign="center">
-                                {puanlar.get(konu.id) || 0} / 10
-                              </Typography>
+                              >
+                                <MenuItem value={0}>0</MenuItem>
+                                <MenuItem value={1}>1</MenuItem>
+                                <MenuItem value={2}>2</MenuItem>
+                                <MenuItem value={3}>3</MenuItem>
+                                <MenuItem value={4}>4</MenuItem>
+                                <MenuItem value={5}>5</MenuItem>
+                                <MenuItem value={6}>6</MenuItem>
+                                <MenuItem value={7}>7</MenuItem>
+                                <MenuItem value={8}>8</MenuItem>
+                                <MenuItem value={9}>9</MenuItem>
+                                <MenuItem value={10}>10</MenuItem>
+                              </Select>
                             </Box>
                           </TableCell>
                           <TableCell>

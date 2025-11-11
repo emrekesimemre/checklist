@@ -1,10 +1,5 @@
 import { create } from 'zustand';
-import {
-  ProjeFirmasi,
-  Konu,
-  Degerlendirme,
-  Puan,
-} from '../types/evaluation';
+import { ProjeFirmasi, Konu, Degerlendirme, Puan } from '../types/evaluation';
 
 interface EvaluationStore {
   // Data
@@ -12,6 +7,9 @@ interface EvaluationStore {
   konular: Konu[];
   degerlendirmeler: Degerlendirme[];
   loading: boolean;
+  loadingProjeFirmalari: boolean;
+  loadingKonular: boolean;
+  loadingDegerlendirmeler: boolean;
   error: string | null;
 
   // Proje Firması Actions
@@ -67,7 +65,12 @@ const ensureDate = (date: Date | string): Date => {
 
 // Helper to normalize data from API
 const normalizeProjeFirmasi = (data: unknown): ProjeFirmasi => {
-  const d = data as { _id?: string; id?: string; name: string; createdAt: Date | string };
+  const d = data as {
+    _id?: string;
+    id?: string;
+    name: string;
+    createdAt: Date | string;
+  };
   return {
     id: d._id || d.id || '',
     name: d.name || '',
@@ -76,7 +79,13 @@ const normalizeProjeFirmasi = (data: unknown): ProjeFirmasi => {
 };
 
 const normalizeKonu = (data: unknown): Konu => {
-  const d = data as { _id?: string; id?: string; title: string; order?: number; createdAt: Date | string };
+  const d = data as {
+    _id?: string;
+    id?: string;
+    title: string;
+    order?: number;
+    createdAt: Date | string;
+  };
   return {
     id: d._id || d.id || '',
     title: d.title || '',
@@ -118,11 +127,14 @@ export const useEvaluationStore = create<EvaluationStore>((set, get) => ({
   konular: [],
   degerlendirmeler: [],
   loading: false,
+  loadingProjeFirmalari: false,
+  loadingKonular: false,
+  loadingDegerlendirmeler: false,
   error: null,
 
   // Proje Firması Actions
   fetchProjeFirmalari: async () => {
-    set({ loading: true, error: null });
+    set({ loading: true, loadingProjeFirmalari: true, error: null });
     try {
       const response = await fetch('/api/proje-firmalari');
       const result = await response.json();
@@ -130,14 +142,23 @@ export const useEvaluationStore = create<EvaluationStore>((set, get) => ({
         set({
           projeFirmalari: result.data.map(normalizeProjeFirmasi),
           loading: false,
+          loadingProjeFirmalari: false,
         });
       } else {
-        set({ error: result.error, loading: false });
+        set({
+          error: result.error,
+          loading: false,
+          loadingProjeFirmalari: false,
+        });
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Firmalar getirilemedi';
-      set({ error: errorMessage, loading: false });
+      set({
+        error: errorMessage,
+        loading: false,
+        loadingProjeFirmalari: false,
+      });
     }
   },
 
@@ -223,7 +244,7 @@ export const useEvaluationStore = create<EvaluationStore>((set, get) => ({
 
   // Konu Actions
   fetchKonular: async () => {
-    set({ loading: true, error: null });
+    set({ loading: true, loadingKonular: true, error: null });
     try {
       const response = await fetch('/api/konular');
       const result = await response.json();
@@ -231,14 +252,15 @@ export const useEvaluationStore = create<EvaluationStore>((set, get) => ({
         set({
           konular: result.data.map(normalizeKonu),
           loading: false,
+          loadingKonular: false,
         });
       } else {
-        set({ error: result.error, loading: false });
+        set({ error: result.error, loading: false, loadingKonular: false });
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Konular getirilemedi';
-      set({ error: errorMessage, loading: false });
+      set({ error: errorMessage, loading: false, loadingKonular: false });
     }
   },
 
@@ -346,7 +368,7 @@ export const useEvaluationStore = create<EvaluationStore>((set, get) => ({
     startDate?: string,
     endDate?: string
   ) => {
-    set({ loading: true, error: null });
+    set({ loading: true, loadingDegerlendirmeler: true, error: null });
     try {
       const params = new URLSearchParams();
       if (yil) params.append('yil', yil.toString());
@@ -354,23 +376,33 @@ export const useEvaluationStore = create<EvaluationStore>((set, get) => ({
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
 
-      const url = `/api/degerlendirmeler${params.toString() ? `?${params.toString()}` : ''}`;
+      const url = `/api/degerlendirmeler${
+        params.toString() ? `?${params.toString()}` : ''
+      }`;
       const response = await fetch(url);
       const result = await response.json();
       if (result.success) {
         set({
           degerlendirmeler: result.data.map(normalizeDegerlendirme),
           loading: false,
+          loadingDegerlendirmeler: false,
         });
       } else {
-        set({ error: result.error, loading: false });
+        set({
+          error: result.error,
+          loading: false,
+          loadingDegerlendirmeler: false,
+        });
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Değerlendirmeler getirilemedi';
+        error instanceof Error
+          ? error.message
+          : 'Değerlendirmeler getirilemedi';
       set({
         error: errorMessage,
         loading: false,
+        loadingDegerlendirmeler: false,
       });
     }
   },
@@ -510,9 +542,7 @@ export const useEvaluationStore = create<EvaluationStore>((set, get) => ({
 
   // Utility Functions
   getDegerlendirmelerByFirma: (firmaId: string) => {
-    return get().degerlendirmeler.filter(
-      (d) => d.projeFirmasiId === firmaId
-    );
+    return get().degerlendirmeler.filter((d) => d.projeFirmasiId === firmaId);
   },
 
   getDegerlendirmelerByYil: (yil: number) => {

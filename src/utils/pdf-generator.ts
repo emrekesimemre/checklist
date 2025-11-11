@@ -1,6 +1,38 @@
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { Checklist } from '../types/checklist';
+import { Degerlendirme, ProjeFirmasi } from '../types/evaluation';
+
+async function loadCustomFont(pdf: jsPDF) {
+  try {
+    const fontUrl = '/fonts/NotoSans-Regular.ttf';
+    const response = await fetch(fontUrl);
+
+    if (!response.ok) {
+      throw new Error(`Font yüklenemedi: ${response.statusText}`);
+    }
+
+    const font = await response.arrayBuffer();
+
+    let binary = '';
+    const bytes = new Uint8Array(font);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const fontBase64 = btoa(binary);
+
+    pdf.addFileToVFS('NotoSans-Regular.ttf', fontBase64);
+
+    pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+    pdf.addFont('NotoSans-Regular.ttf', 'NotoSans', 'bold');
+
+    pdf.setFont('NotoSans', 'normal');
+  } catch (e) {
+    console.error("Özel font yüklenemedi, 'helvetica' kullanılacak:", e);
+    pdf.setFont('helvetica', 'normal');
+  }
+}
 
 export interface PDFOptions {
   orientation?: 'portrait' | 'landscape';
@@ -231,7 +263,7 @@ export const generateChecklistPDF = async (
     pdf.save(filename);
   } catch (error) {
     console.error('PDF generation failed:', error);
-    throw new Error('PDF oluşturulamadı. Lütfen tekrar deneyin.');
+    throw new Error('PDF olusturulamadi. Lutfen tekrar deneyin.');
   }
 };
 
@@ -323,4 +355,369 @@ ${checklist.notes}
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+};
+
+interface YillikOzet {
+  firmaId: string;
+  firmaName: string;
+  ortalamaPuan: number;
+  degerlendirmeSayisi: number;
+}
+
+interface ReportsPDFData {
+  degerlendirmeler: Degerlendirme[];
+  yillikOzet?: YillikOzet[] | null;
+  yillikGenelOrtalama?: number | null;
+  genelOrtalamaPuan?: number | null;
+  selectedYil?: number | 'all';
+  selectedFirma?: string | 'all';
+  selectedFirmaName?: string;
+  startDate?: string;
+  endDate?: string;
+  projeFirmalari?: ProjeFirmasi[];
+}
+
+export const generateReportsPDF = async (
+  data: ReportsPDFData
+): Promise<void> => {
+  const {
+    degerlendirmeler,
+    yillikOzet,
+    yillikGenelOrtalama,
+    genelOrtalamaPuan,
+    selectedYil,
+    selectedFirma,
+    selectedFirmaName,
+    startDate,
+    endDate,
+  } = data;
+
+  try {
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true,
+    });
+
+    await loadCustomFont(pdf);
+
+    // jsPDF 3.x supports UTF-8, so Turkish characters should work directly
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const margin = 15;
+    const contentWidth = pdfWidth - 2 * margin;
+    let yPosition = margin;
+
+    // Helper function to add new page if needed
+    const checkNewPage = (requiredHeight: number) => {
+      if (yPosition + requiredHeight > pdfHeight - margin) {
+        pdf.addPage();
+        yPosition = margin;
+        return true;
+      }
+      return false;
+    };
+
+    // Title - Use direct text as jsPDF 3.x supports UTF-8
+    pdf.setFontSize(20);
+    pdf.setFont('NotoSans', 'bold');
+    pdf.text('DEĞERLENDİRME RAPORLARI', pdfWidth / 2, yPosition, {
+      align: 'center',
+    });
+    yPosition += 10;
+
+    // Date
+    pdf.setFontSize(10);
+    pdf.setFont('NotoSans', 'normal');
+    pdf.setTextColor(100);
+    pdf.text(
+      `Rapor Oluşturulma Tarihi: ${new Date().toLocaleString('tr-TR')}`,
+      pdfWidth / 2,
+      yPosition,
+      { align: 'center' }
+    );
+    yPosition += 8;
+    pdf.setTextColor(0);
+
+    // Filter Information
+    pdf.setFontSize(12);
+    pdf.setFont('NotoSans', 'bold');
+    pdf.text('Filtre Bilgileri', margin, yPosition);
+    yPosition += 7;
+
+    pdf.setFontSize(10);
+    pdf.setFont('NotoSans', 'normal');
+    const filters: string[] = [];
+    if (selectedYil !== 'all' && selectedYil) {
+      filters.push(`Yıl: ${selectedYil}`);
+    } else {
+      filters.push('Yıl: Tüm Yıllar');
+    }
+    if (selectedFirma !== 'all' && selectedFirma && selectedFirmaName) {
+      filters.push(`Proje Firması: ${selectedFirmaName}`);
+    } else {
+      filters.push('Proje Firması: Tüm Firmalar');
+    }
+    if (startDate) {
+      filters.push(
+        `Başlangıç Tarihi: ${new Date(startDate).toLocaleDateString('tr-TR')}`
+      );
+    }
+    if (endDate) {
+      filters.push(
+        `Bitiş Tarihi: ${new Date(endDate).toLocaleDateString('tr-TR')}`
+      );
+    }
+
+    filters.forEach((filter) => {
+      pdf.text(filter, margin + 5, yPosition);
+      yPosition += 5;
+    });
+
+    yPosition += 5;
+
+    // Yıllık Özet (if available)
+    if (selectedYil !== 'all' && yillikOzet && yillikOzet.length > 0) {
+      checkNewPage(30);
+      pdf.setFontSize(12);
+      pdf.setFont('NotoSans', 'bold');
+      pdf.text(
+        `${selectedYil} Yılının Özeti - Proje Firmalarına Verilen Puanlar`,
+        margin,
+        yPosition
+      );
+      yPosition += 8;
+
+      // Table header
+      pdf.setFontSize(9);
+      pdf.setFont('NotoSans', 'bold');
+      const colWidths = [
+        contentWidth * 0.5,
+        contentWidth * 0.25,
+        contentWidth * 0.25,
+      ];
+      pdf.text('Firma Adı', margin, yPosition);
+      pdf.text('Değerlendirme Sayısı', margin + colWidths[0], yPosition, {
+        align: 'right',
+      });
+      pdf.text(
+        'Ortalama Puan',
+        margin + colWidths[0] + colWidths[1],
+        yPosition,
+        {
+          align: 'right',
+        }
+      );
+      yPosition += 5;
+
+      // Draw line
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, yPosition, pdfWidth - margin, yPosition);
+      yPosition += 3;
+
+      // Table rows
+      pdf.setFont('NotoSans', 'normal');
+      yillikOzet.forEach((ozet) => {
+        checkNewPage(8);
+        pdf.text(ozet.firmaName, margin, yPosition);
+        pdf.text(
+          ozet.degerlendirmeSayisi.toString(),
+          margin + colWidths[0],
+          yPosition,
+          {
+            align: 'right',
+          }
+        );
+        pdf.text(
+          ozet.ortalamaPuan.toFixed(2),
+          margin + colWidths[0] + colWidths[1],
+          yPosition,
+          {
+            align: 'right',
+          }
+        );
+        yPosition += 6;
+      });
+
+      // Genel Ortalama
+      if (yillikGenelOrtalama !== null && yillikGenelOrtalama !== undefined) {
+        checkNewPage(10);
+        yPosition += 3;
+        pdf.setLineWidth(0.3);
+        pdf.line(margin, yPosition, pdfWidth - margin, yPosition);
+        yPosition += 5;
+        pdf.setFont('NotoSans', 'bold');
+        pdf.text('Genel Ortalama Puan:', margin, yPosition);
+        pdf.text(
+          yillikGenelOrtalama.toFixed(2),
+          margin + colWidths[0] + colWidths[1],
+          yPosition,
+          { align: 'right' }
+        );
+        yPosition += 8;
+      }
+    }
+
+    // Değerlendirmeler Listesi
+    checkNewPage(20);
+    pdf.setFontSize(12);
+    pdf.setFont('NotoSans', 'bold');
+    pdf.text(
+      `Değerlendirmeler (${degerlendirmeler.length})`,
+      margin,
+      yPosition
+    );
+    yPosition += 8;
+
+    if (degerlendirmeler.length === 0) {
+      pdf.setFontSize(10);
+      pdf.setFont('NotoSans', 'normal');
+      pdf.text(
+        'Seçilen kriterlere uygun değerlendirme bulunamadı.',
+        margin,
+        yPosition
+      );
+    } else {
+      // Table header
+      pdf.setFontSize(8);
+      pdf.setFont('NotoSans', 'bold');
+      const tableColWidths = [
+        contentWidth * 0.25,
+        contentWidth * 0.25,
+        contentWidth * 0.1,
+        contentWidth * 0.15,
+        contentWidth * 0.15,
+      ];
+      let xPos = margin;
+      pdf.text('İşin Adı', xPos, yPosition);
+      xPos += tableColWidths[0];
+      pdf.text('Proje Firması', xPos, yPosition);
+      xPos += tableColWidths[1];
+      pdf.text('Yıl', xPos, yPosition, { align: 'right' });
+      xPos += tableColWidths[2];
+      pdf.text('Tarih', xPos, yPosition, { align: 'right' });
+      xPos += tableColWidths[3];
+      pdf.text('Toplam Puan', xPos, yPosition, { align: 'right' });
+      yPosition += 5;
+
+      // Draw line
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, yPosition, pdfWidth - margin, yPosition);
+      yPosition += 3;
+
+      // Table rows
+      pdf.setFont('NotoSans', 'normal');
+      pdf.setFontSize(8);
+      degerlendirmeler.forEach((degerlendirme, index) => {
+        checkNewPage(10); // Check for new page BEFORE drawing
+
+        // === GÜNCELLEME 2: Çizgi Pozisyonu Düzeltmesi ===
+        // Draw separator line BEFORE the row (except for first row)
+        if (index > 0) {
+          yPosition += 2; // Çizgiden ÖNCE boşluk bırak
+          pdf.setLineWidth(0.2);
+          pdf.line(margin, yPosition, pdfWidth - margin, yPosition);
+          yPosition += 3; // Çizgiden SONRA metin için boşluk bırak
+        }
+        // ============================================
+
+        // İşin Adı (may need to wrap)
+        const isAdiLines = pdf.splitTextToSize(
+          degerlendirme.isAdi,
+          tableColWidths[0] - 2
+        );
+        const firmaLines = pdf.splitTextToSize(
+          degerlendirme.projeFirmasiName,
+          tableColWidths[1] - 2
+        );
+        const maxLines = Math.max(isAdiLines.length, firmaLines.length, 1);
+        const rowHeight = maxLines * 4; // 4mm per line
+
+        // Yeni sayfaya geçiş gerekirse, mevcut satırı çizmeden önce yap
+        if (checkNewPage(rowHeight)) {
+          // Yeni sayfada başlıkları tekrar çizmek isteyebilirsiniz (opsiyonel)
+          // Şimdilik sadece yPosition sıfırlandığı için devam ediyoruz.
+        }
+
+        xPos = margin;
+        // Metni mevcut yPosition'a çiz
+        const startY = yPosition;
+
+        isAdiLines.forEach((line: string, lineIndex: number) => {
+          pdf.text(line, xPos, startY + lineIndex * 4);
+        });
+
+        xPos += tableColWidths[0];
+        firmaLines.forEach((line: string, lineIndex: number) => {
+          pdf.text(line, xPos, startY + lineIndex * 4);
+        });
+
+        xPos += tableColWidths[1];
+        pdf.text(degerlendirme.yil.toString(), xPos, startY, {
+          align: 'right',
+        });
+
+        xPos += tableColWidths[2];
+        pdf.text(
+          new Date(degerlendirme.createdAt).toLocaleDateString('tr-TR'),
+          xPos,
+          startY,
+          { align: 'right' }
+        );
+
+        xPos += tableColWidths[3];
+        pdf.text(degerlendirme.toplamPuan.toFixed(2), xPos, startY, {
+          align: 'right',
+        });
+
+        // Move to next row position (below the content)
+        yPosition += rowHeight; // Sadece satır yüksekliği kadar artır
+      });
+
+      // Genel Ortalama Puan
+      if (genelOrtalamaPuan !== null && genelOrtalamaPuan !== undefined) {
+        checkNewPage(10);
+        yPosition += 3;
+        pdf.setLineWidth(0.5);
+        pdf.line(margin, yPosition, pdfWidth - margin, yPosition);
+        yPosition += 5;
+        pdf.setFont('NotoSans', 'bold');
+        pdf.setFontSize(10);
+        pdf.text('Genel Ortalama Puan:', margin, yPosition);
+        pdf.text(genelOrtalamaPuan.toFixed(2), pdfWidth - margin, yPosition, {
+          align: 'right',
+        });
+      }
+    }
+
+    // Footer
+    const pageCount = (
+      pdf.internal as unknown as { getNumberOfPages: () => number }
+    ).getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(8);
+      pdf.setTextColor(100);
+      pdf.text(`Sayfa ${i} / ${pageCount}`, pdfWidth / 2, pdfHeight - 10, {
+        align: 'center',
+      });
+    }
+
+    // Generate filename
+    const filenameParts: string[] = ['degerlendirme-raporlari'];
+    if (selectedYil !== 'all' && selectedYil) {
+      filenameParts.push(`${selectedYil}`);
+    }
+    if (selectedFirma !== 'all' && selectedFirmaName) {
+      filenameParts.push(selectedFirmaName.replace(/[^a-zA-Z0-9]/g, '_'));
+    }
+    const filename = `${filenameParts.join('_')}.pdf`;
+
+    pdf.save(filename);
+  } catch (error) {
+    console.error('PDF oluşturulamadı:', error);
+    throw new Error('PDF oluşturulamadı. Lütfen tekrar deneyin.');
+  }
 };
