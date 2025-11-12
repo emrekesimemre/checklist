@@ -114,4 +114,3 @@ const Checklist: Model<IChecklist> =
   mongoose.model<IChecklist>('Checklist', ChecklistSchema);
 
 export default Checklist;
-

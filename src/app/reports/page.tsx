@@ -19,8 +19,6 @@ import {
   InputLabel,
   Alert,
   Chip,
-  AppBar,
-  Toolbar,
   Card,
   CardContent,
   Button,
@@ -33,13 +31,7 @@ import {
   Snackbar,
   Skeleton,
 } from '@mui/material';
-import {
-  ArrowBack,
-  Assessment,
-  Delete,
-  PictureAsPdf,
-} from '@mui/icons-material';
-import Link from 'next/link';
+import { Assessment, Delete, PictureAsPdf } from '@mui/icons-material';
 import { useEvaluationStore } from '../../store/evaluation-store';
 import { generateReportsPDF } from '../../utils/pdf-generator';
 
@@ -271,37 +263,32 @@ export default function ReportsPage() {
 
   return (
     <Box>
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <IconButton edge="start" color="inherit" sx={{ mr: 2 }}>
-              <ArrowBack />
-            </IconButton>
-          </Link>
-          <Assessment sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Değerlendirme Raporları
-          </Typography>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box
+          mb={4}
+          display="flex"
+          justifyContent="space-between"
+          alignItems="flex-start"
+          flexWrap="wrap"
+          gap={2}
+        >
+          <Box>
+            <Typography variant="h4" gutterBottom>
+              Değerlendirme Raporları
+            </Typography>
+            <Typography variant="body1" color="text.secondary">
+              Geçmiş değerlendirmeleri görüntüleyin ve analiz edin
+            </Typography>
+          </Box>
           <Button
-            color="inherit"
+            variant="contained"
             startIcon={<PictureAsPdf />}
             onClick={handleExportPDF}
             disabled={isGeneratingPDF || filteredDegerlendirmeler.length === 0}
-            size="small"
+            size="large"
           >
             {isGeneratingPDF ? 'Oluşturuluyor...' : 'PDF İndir'}
           </Button>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ py: 4 }}>
-        <Box mb={4}>
-          <Typography variant="h4" gutterBottom>
-            Değerlendirme Raporları
-          </Typography>
-          <Typography variant="body1" color="text.secondary">
-            Geçmiş değerlendirmeleri görüntüleyin ve analiz edin
-          </Typography>
         </Box>
 
         {/* Filtreler */}

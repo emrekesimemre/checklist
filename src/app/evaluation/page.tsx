@@ -24,25 +24,15 @@ import {
   Alert,
   Snackbar,
   Chip,
-  AppBar,
-  Toolbar,
   Stack,
   Select,
   MenuItem,
   Skeleton,
 } from '@mui/material';
-import {
-  Add,
-  Edit,
-  Delete,
-  Save,
-  Assessment,
-  ArrowBack,
-} from '@mui/icons-material';
+import { Add, Edit, Delete, Save } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useEvaluationStore } from '../../store/evaluation-store';
 import { Konu, Puan, ProjeFirmasi } from '../../types/evaluation';
-import Link from 'next/link';
 
 export default function EvaluationPage() {
   const router = useRouter();
@@ -369,21 +359,10 @@ export default function EvaluationPage() {
 
   return (
     <Box>
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-            <IconButton edge="start" color="inherit" sx={{ mr: 2 }}>
-              <ArrowBack />
-            </IconButton>
-          </Link>
-          <Assessment sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Mekanik Değerlendirme Formu
-          </Typography>
-        </Toolbar>
-      </AppBar>
-
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Typography variant="h4" component="h1" gutterBottom sx={{ mb: 3 }}>
+          Mekanik Değerlendirme Formu
+        </Typography>
         <Paper elevation={2} sx={{ p: 4, mb: 4 }}>
           <Typography variant="h5" gutterBottom sx={{ mb: 3 }}>
             TADİLAT VE DEKORASYON İŞLERİNE AİT PROJE FİRMASI DEĞERLENDİRME
