@@ -363,7 +363,7 @@ export default function HomePage() {
           setDeletingChecklist(null);
         }}
       >
-        <DialogTitle>Checklist'i Sil</DialogTitle>
+        <DialogTitle>Checklist&apos;i Sil</DialogTitle>
         <DialogContent>
           <DialogContentText>
             &quot;{deletingChecklist?.title}&quot; adlı checklist&apos;i silmek
