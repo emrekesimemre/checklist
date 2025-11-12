@@ -4,6 +4,8 @@ import { ThemeProvider } from '@mui/material/styles';
 import { CssBaseline, Box } from '@mui/material';
 import { theme } from '../theme/theme';
 import Footer from '../components/footer';
+import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
+import PWAMeta from '../components/PWAMeta';
 
 export default function RootLayout({
   children,
@@ -13,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <PWAMeta />
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <Box
@@ -26,6 +29,7 @@ export default function RootLayout({
             <Footer />
           </Box>
           <Analytics />
+          <ServiceWorkerRegistration />
         </ThemeProvider>
       </body>
     </html>
