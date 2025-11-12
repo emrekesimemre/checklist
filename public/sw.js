@@ -1,10 +1,5 @@
-const CACHE_NAME = 'checklist-app-v1';
-const urlsToCache = [
-  '/',
-  '/evaluation',
-  '/reports',
-  '/manifest.json',
-];
+const CACHE_NAME = 'checklist-app-v2';
+const urlsToCache = ['/', '/evaluation', '/reports', '/manifest.json'];
 
 // Install event - cache resources
 self.addEventListener('install', (event) => {
@@ -32,8 +27,23 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network first for Next.js chunks, cache for static assets
 self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Never cache Next.js chunks - they have hashes and should always be fresh
+  // This includes _next/static files which change with each build
+  if (
+    url.pathname.startsWith('/_next/static/') ||
+    url.pathname.startsWith('/_next/chunks/') ||
+    url.pathname.includes('/_next/')
+  ) {
+    // Network only for Next.js chunks - don't cache at all
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // For other requests, try cache first, then network
   event.respondWith(
     caches.match(event.request).then((response) => {
       // Return cached version or fetch from network
@@ -41,4 +51,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-
