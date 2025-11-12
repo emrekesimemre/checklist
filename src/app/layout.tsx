@@ -6,6 +6,8 @@ import { theme } from '../theme/theme';
 import Footer from '../components/footer';
 import ServiceWorkerRegistration from '../components/ServiceWorkerRegistration';
 import PWAMeta from '../components/PWAMeta';
+import Navigation from '../components/Navigation';
+import PageTransitionLoader from '../components/PageTransitionLoader';
 
 export default function RootLayout({
   children,
@@ -25,6 +27,8 @@ export default function RootLayout({
               minHeight: '100vh',
             }}
           >
+            <Navigation />
+            <PageTransitionLoader />
             <Box sx={{ flex: 1 }}>{children}</Box>
             <Footer />
           </Box>

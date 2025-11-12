@@ -6,8 +6,6 @@ import {
   Typography,
   Button,
   Box,
-  AppBar,
-  Toolbar,
   IconButton,
   Dialog,
   DialogTitle,
@@ -23,11 +21,9 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  ArrowBack,
   Add,
   PictureAsPdf,
   FileDownload,
-  ChecklistRtl,
   Edit,
   Save,
   Cancel,
@@ -231,43 +227,38 @@ export default function ChecklistDetailPage({
 
   return (
     <>
-      <AppBar position="static" elevation={1}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => router.push('/')}
-            sx={{ mr: 2 }}
-          >
-            <ArrowBack />
-          </IconButton>
-          <ChecklistRtl sx={{ mr: 2 }} />
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box
+          display="flex"
+          justifyContent="space-between"
+          alignItems="center"
+          mb={3}
+          flexWrap="wrap"
+          gap={2}
+        >
+          <Typography variant="h4" component="h1">
             {currentChecklist.title}
           </Typography>
           <Box display="flex" gap={1}>
             <Button
-              color="inherit"
+              variant="outlined"
               startIcon={<FileDownload />}
               onClick={handleDownloadSummary}
-              size="small"
+              size="medium"
             >
               Özet
             </Button>
             <Button
-              color="inherit"
+              variant="contained"
               startIcon={<PictureAsPdf />}
               onClick={handleExportPDF}
               disabled={isGeneratingPDF || progress.total === 0}
-              size="small"
+              size="medium"
             >
               {isGeneratingPDF ? 'Oluşturuluyor...' : 'PDF'}
             </Button>
           </Box>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg" sx={{ py: 4 }}>
+        </Box>
         {/* Checklist Header */}
         <Paper sx={{ p: 3, mb: 3 }} id="checklist-content">
           <Box

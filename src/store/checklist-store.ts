@@ -135,7 +135,7 @@ export const useChecklistStore = create<ChecklistStore>((set, get) => ({
       }
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : 'Checklist\'ler getirilemedi';
+        error instanceof Error ? error.message : "Checklist'ler getirilemedi";
       set({
         error: errorMessage,
         loading: false,
@@ -238,10 +238,7 @@ export const useChecklistStore = create<ChecklistStore>((set, get) => ({
     await get().updateChecklist(checklistId, { notes });
   },
 
-  updateChecklist: async (
-    checklistId: string,
-    updates: Partial<Checklist>
-  ) => {
+  updateChecklist: async (checklistId: string, updates: Partial<Checklist>) => {
     set({ loading: true, error: null });
     try {
       const response = await fetch(`/api/checklists/${checklistId}`, {
@@ -274,11 +271,7 @@ export const useChecklistStore = create<ChecklistStore>((set, get) => ({
     }
   },
 
-  addItem: async (
-    checklistId: string,
-    title: string,
-    description?: string
-  ) => {
+  addItem: async (checklistId: string, title: string, description?: string) => {
     const state = get();
     const checklist = state.checklists.find((c) => c.id === checklistId);
     if (!checklist) {
