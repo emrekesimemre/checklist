@@ -53,17 +53,25 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
     deleteItem,
   } = useChecklistStore();
 
-  const handleStatusChange = (newStatus: ChecklistStatus) => {
-    updateItemStatus(checklistId, item.id, newStatus);
-    if (newStatus === 'completed') {
-      setReason('');
-      updateItemReason(checklistId, item.id, '');
+  const handleStatusChange = async (newStatus: ChecklistStatus) => {
+    try {
+      await updateItemStatus(checklistId, item.id, newStatus);
+      if (newStatus === 'completed') {
+        setReason('');
+        await updateItemReason(checklistId, item.id, '');
+      }
+    } catch (error) {
+      console.error('Error updating item status:', error);
     }
   };
 
-  const handleReasonChange = (newReason: string) => {
+  const handleReasonChange = async (newReason: string) => {
     setReason(newReason);
-    updateItemReason(checklistId, item.id, newReason);
+    try {
+      await updateItemReason(checklistId, item.id, newReason);
+    } catch (error) {
+      console.error('Error updating item reason:', error);
+    }
   };
 
   const handleImageUpload = async (
@@ -88,8 +96,12 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
     }
   };
 
-  const handleRemoveImage = (imageId: string) => {
-    removeImageFromItem(checklistId, item.id, imageId);
+  const handleRemoveImage = async (imageId: string) => {
+    try {
+      await removeImageFromItem(checklistId, item.id, imageId);
+    } catch (error) {
+      console.error('Error removing image:', error);
+    }
   };
 
   const getStatusColor = ():
@@ -152,7 +164,13 @@ export const ChecklistItem: React.FC<ChecklistItemProps> = ({
             {!readOnly && (
               <IconButton
                 color="error"
-                onClick={() => deleteItem(checklistId, item.id)}
+                onClick={async () => {
+                  try {
+                    await deleteItem(checklistId, item.id);
+                  } catch (error) {
+                    console.error('Error deleting item:', error);
+                  }
+                }}
                 size="small"
               >
                 <Delete />

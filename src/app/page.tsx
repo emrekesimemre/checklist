@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -45,23 +45,41 @@ export default function HomePage() {
     null
   );
 
-  const { checklists, createChecklist, deleteChecklist, setCurrentChecklist } =
-    useChecklistStore();
+  const {
+    checklists,
+    createChecklist,
+    deleteChecklist,
+    setCurrentChecklist,
+    fetchChecklists,
+    loadingChecklists,
+  } = useChecklistStore();
 
-  const handleCreateChecklist = () => {
+  useEffect(() => {
+    fetchChecklists();
+  }, [fetchChecklists]);
+
+  const handleCreateChecklist = async () => {
     if (newChecklistTitle.trim()) {
-      createChecklist(
-        newChecklistTitle.trim(),
-        newChecklistDescription.trim() || undefined
-      );
-      setNewChecklistTitle('');
-      setNewChecklistDescription('');
-      setIsCreateDialogOpen(false);
-      setSnackbar({
-        open: true,
-        message: 'Checklist başarıyla oluşturuldu!',
-        severity: 'success',
-      });
+      try {
+        await createChecklist(
+          newChecklistTitle.trim(),
+          newChecklistDescription.trim() || undefined
+        );
+        setNewChecklistTitle('');
+        setNewChecklistDescription('');
+        setIsCreateDialogOpen(false);
+        setSnackbar({
+          open: true,
+          message: 'Checklist başarıyla oluşturuldu!',
+          severity: 'success',
+        });
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: 'Checklist oluşturulurken hata oluştu!',
+          severity: 'error',
+        });
+      }
     }
   };
 
@@ -75,17 +93,26 @@ export default function HomePage() {
     setDeleteDialogOpen(true);
   };
 
-  const handleDeleteChecklistConfirm = () => {
+  const handleDeleteChecklistConfirm = async () => {
     if (!deletingChecklist) return;
 
-    deleteChecklist(deletingChecklist.id);
-    setSnackbar({
-      open: true,
-      message: 'Checklist başarıyla silindi!',
-      severity: 'success',
-    });
-    setDeleteDialogOpen(false);
-    setDeletingChecklist(null);
+    try {
+      await deleteChecklist(deletingChecklist.id);
+      setSnackbar({
+        open: true,
+        message: 'Checklist başarıyla silindi!',
+        severity: 'success',
+      });
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: 'Checklist silinirken hata oluştu!',
+        severity: 'error',
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setDeletingChecklist(null);
+    }
   };
 
   const handleExportPDF = async (checklist: Checklist) => {
@@ -209,7 +236,16 @@ export default function HomePage() {
           </Button>
         </Box>
 
-        {checklists.length === 0 ? (
+        {loadingChecklists ? (
+          <Box
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            minHeight="400px"
+          >
+            <Typography>Yükleniyor...</Typography>
+          </Box>
+        ) : checklists.length === 0 ? (
           <Box
             display="flex"
             flexDirection="column"

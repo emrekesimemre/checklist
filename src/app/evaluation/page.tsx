@@ -41,7 +41,7 @@ import {
 } from '@mui/icons-material';
 import { useRouter } from 'next/navigation';
 import { useEvaluationStore } from '../../store/evaluation-store';
-import { Konu, Puan } from '../../types/evaluation';
+import { Konu, Puan, ProjeFirmasi } from '../../types/evaluation';
 import Link from 'next/link';
 
 export default function EvaluationPage() {
@@ -52,6 +52,8 @@ export default function EvaluationPage() {
     fetchProjeFirmalari,
     fetchKonular,
     addProjeFirmasi,
+    updateProjeFirmasi,
+    deleteProjeFirmasi,
     addKonu,
     updateKonu,
     deleteKonu,
@@ -78,9 +80,12 @@ export default function EvaluationPage() {
   const [deleteKonuDialogOpen, setDeleteKonuDialogOpen] = useState(false);
   const [deletingKonuId, setDeletingKonuId] = useState<string | null>(null);
 
-  // Yeni firma ekleme
+  // Firma yönetimi
   const [isFirmaDialogOpen, setIsFirmaDialogOpen] = useState(false);
-  const [newFirmaName, setNewFirmaName] = useState('');
+  const [editingFirma, setEditingFirma] = useState<ProjeFirmasi | null>(null);
+  const [firmaName, setFirmaName] = useState('');
+  const [deleteFirmaDialogOpen, setDeleteFirmaDialogOpen] = useState(false);
+  const [deletingFirmaId, setDeletingFirmaId] = useState<string | null>(null);
 
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
@@ -200,12 +205,19 @@ export default function EvaluationPage() {
   };
 
   const handleAddFirma = () => {
-    setNewFirmaName('');
+    setEditingFirma(null);
+    setFirmaName('');
+    setIsFirmaDialogOpen(true);
+  };
+
+  const handleEditFirma = (firma: ProjeFirmasi) => {
+    setEditingFirma(firma);
+    setFirmaName(firma.name);
     setIsFirmaDialogOpen(true);
   };
 
   const handleSaveFirma = async () => {
-    if (!newFirmaName.trim()) {
+    if (!firmaName.trim()) {
       setSnackbar({
         open: true,
         message: 'Firma adı boş olamaz!',
@@ -214,28 +226,74 @@ export default function EvaluationPage() {
       return;
     }
     try {
-      await addProjeFirmasi(newFirmaName);
-      const newFirma = projeFirmalari.find(
-        (f) => f.name === newFirmaName.trim()
-      );
-      if (newFirma) {
-        setSelectedFirma(newFirma.id);
+      if (editingFirma) {
+        await updateProjeFirmasi(editingFirma.id, firmaName);
+        setSnackbar({
+          open: true,
+          message: 'Firma güncellendi!',
+          severity: 'success',
+        });
+      } else {
+        await addProjeFirmasi(firmaName);
+        const newFirma = projeFirmalari.find(
+          (f) => f.name === firmaName.trim()
+        );
+        if (newFirma) {
+          setSelectedFirma(newFirma.id);
+        }
+        setSnackbar({
+          open: true,
+          message: 'Proje firması eklendi!',
+          severity: 'success',
+        });
       }
       setIsFirmaDialogOpen(false);
-      setNewFirmaName('');
-      setSnackbar({
-        open: true,
-        message: 'Proje firması eklendi!',
-        severity: 'success',
-      });
+      setFirmaName('');
     } catch (err) {
       const errorMessage =
-        err instanceof Error ? err.message : 'Firma eklenirken hata oluştu!';
+        err instanceof Error
+          ? err.message
+          : editingFirma
+          ? 'Firma güncellenirken hata oluştu!'
+          : 'Firma eklenirken hata oluştu!';
       setSnackbar({
         open: true,
         message: errorMessage,
         severity: 'error',
       });
+    }
+  };
+
+  const handleDeleteFirmaClick = (firmaId: string) => {
+    setDeletingFirmaId(firmaId);
+    setDeleteFirmaDialogOpen(true);
+  };
+
+  const handleDeleteFirmaConfirm = async () => {
+    if (!deletingFirmaId) return;
+
+    try {
+      await deleteProjeFirmasi(deletingFirmaId);
+      // Eğer silinen firma seçiliyse, seçimi temizle
+      if (selectedFirma === deletingFirmaId) {
+        setSelectedFirma(null);
+      }
+      setSnackbar({
+        open: true,
+        message: 'Firma silindi!',
+        severity: 'success',
+      });
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : 'Firma silinirken hata oluştu!';
+      setSnackbar({
+        open: true,
+        message: errorMessage,
+        severity: 'error',
+      });
+    } finally {
+      setDeleteFirmaDialogOpen(false);
+      setDeletingFirmaId(null);
     }
   };
 
@@ -378,6 +436,98 @@ export default function EvaluationPage() {
               >
                 Firma Ekle
               </Button>
+            </Box>
+
+            {/* Proje Firmaları Yönetimi */}
+            <Box>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+                mb={2}
+              >
+                <Typography variant="h6">Proje Firmaları</Typography>
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={handleAddFirma}
+                  size="small"
+                >
+                  Firma Ekle
+                </Button>
+              </Box>
+
+              {projeFirmalari.length === 0 ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Henüz firma eklenmemiş. Lütfen firma ekleyin.
+                </Alert>
+              ) : (
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell width="80%">FİRMA ADI</TableCell>
+                        <TableCell width="20%">İŞLEMLER</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {loadingProjeFirmalari ? (
+                        Array.from({ length: 3 }).map((_, index) => (
+                          <TableRow key={`skeleton-${index}`}>
+                            <TableCell>
+                              <Skeleton variant="text" width="80%" />
+                            </TableCell>
+                            <TableCell>
+                              <Box display="flex" gap={1}>
+                                <Skeleton
+                                  variant="circular"
+                                  width={32}
+                                  height={32}
+                                />
+                                <Skeleton
+                                  variant="circular"
+                                  width={32}
+                                  height={32}
+                                />
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : projeFirmalari.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={2} align="center">
+                            <Typography color="text.secondary" py={2}>
+                              Henüz firma eklenmemiş
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        projeFirmalari.map((firma) => (
+                          <TableRow key={firma.id}>
+                            <TableCell>{firma.name}</TableCell>
+                            <TableCell>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleEditFirma(firma)}
+                                color="primary"
+                              >
+                                <Edit fontSize="small" />
+                              </IconButton>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDeleteFirmaClick(firma.id)}
+                                color="error"
+                              >
+                                <Delete fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
             </Box>
 
             <Box>
@@ -593,14 +743,16 @@ export default function EvaluationPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Firma Ekle Dialog */}
+      {/* Firma Ekle/Düzenle Dialog */}
       <Dialog
         open={isFirmaDialogOpen}
         onClose={() => setIsFirmaDialogOpen(false)}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Yeni Proje Firması Ekle</DialogTitle>
+        <DialogTitle>
+          {editingFirma ? 'Firma Düzenle' : 'Yeni Proje Firması Ekle'}
+        </DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -608,8 +760,8 @@ export default function EvaluationPage() {
             label="Firma Adı"
             fullWidth
             variant="outlined"
-            value={newFirmaName}
-            onChange={(e) => setNewFirmaName(e.target.value)}
+            value={firmaName}
+            onChange={(e) => setFirmaName(e.target.value)}
             placeholder="Örn: ABC İnşaat A.Ş."
           />
         </DialogContent>
@@ -618,9 +770,43 @@ export default function EvaluationPage() {
           <Button
             onClick={handleSaveFirma}
             variant="contained"
-            disabled={!newFirmaName.trim()}
+            disabled={!firmaName.trim()}
           >
-            Ekle
+            {editingFirma ? 'Güncelle' : 'Ekle'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Firma Silme Onay Dialog */}
+      <Dialog
+        open={deleteFirmaDialogOpen}
+        onClose={() => {
+          setDeleteFirmaDialogOpen(false);
+          setDeletingFirmaId(null);
+        }}
+      >
+        <DialogTitle>Firmayı Sil</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Bu firmayı silmek istediğinizden emin misiniz? Bu işlem geri
+            alınamaz. Bu firmaya ait değerlendirmeler de etkilenebilir.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDeleteFirmaDialogOpen(false);
+              setDeletingFirmaId(null);
+            }}
+          >
+            İptal
+          </Button>
+          <Button
+            onClick={handleDeleteFirmaConfirm}
+            color="error"
+            variant="contained"
+          >
+            Sil
           </Button>
         </DialogActions>
       </Dialog>

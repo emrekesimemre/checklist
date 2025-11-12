@@ -70,9 +70,11 @@ export default function ChecklistDetailPage({
   const {
     currentChecklist,
     setCurrentChecklist,
+    fetchChecklist,
     addItem,
     getChecklistProgress,
     updateChecklistNotes,
+    loading,
   } = useChecklistStore();
 
   const handleExportPDF = useCallback(async () => {
@@ -99,8 +101,11 @@ export default function ChecklistDetailPage({
   }, [currentChecklist]);
 
   useEffect(() => {
-    setCurrentChecklist(id);
-  }, [id, setCurrentChecklist]);
+    fetchChecklist(id).catch(() => {
+      // If fetch fails, try to set from local state
+      setCurrentChecklist(id);
+    });
+  }, [id, fetchChecklist, setCurrentChecklist]);
 
   useEffect(() => {
     // Check if PDF export was requested
@@ -135,33 +140,49 @@ export default function ChecklistDetailPage({
     return formatDate(currentChecklist.updatedAt);
   }, [currentChecklist, formatDate]);
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (newItemTitle.trim() && currentChecklist) {
-      addItem(
-        currentChecklist.id,
-        newItemTitle.trim(),
-        newItemDescription.trim() || undefined
-      );
-      setNewItemTitle('');
-      setNewItemDescription('');
-      setIsAddItemDialogOpen(false);
-      setSnackbar({
-        open: true,
-        message: 'Madde başarıyla eklendi!',
-        severity: 'success',
-      });
+      try {
+        await addItem(
+          currentChecklist.id,
+          newItemTitle.trim(),
+          newItemDescription.trim() || undefined
+        );
+        setNewItemTitle('');
+        setNewItemDescription('');
+        setIsAddItemDialogOpen(false);
+        setSnackbar({
+          open: true,
+          message: 'Madde başarıyla eklendi!',
+          severity: 'success',
+        });
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: 'Madde eklenirken hata oluştu!',
+          severity: 'error',
+        });
+      }
     }
   };
 
-  const handleSaveNotes = () => {
+  const handleSaveNotes = async () => {
     if (currentChecklist) {
-      updateChecklistNotes(currentChecklist.id, notesValue);
-      setIsEditingNotes(false);
-      setSnackbar({
-        open: true,
-        message: 'Notlar başarıyla kaydedildi!',
-        severity: 'success',
-      });
+      try {
+        await updateChecklistNotes(currentChecklist.id, notesValue);
+        setIsEditingNotes(false);
+        setSnackbar({
+          open: true,
+          message: 'Notlar başarıyla kaydedildi!',
+          severity: 'success',
+        });
+      } catch (error) {
+        setSnackbar({
+          open: true,
+          message: 'Notlar kaydedilirken hata oluştu!',
+          severity: 'error',
+        });
+      }
     }
   };
 
