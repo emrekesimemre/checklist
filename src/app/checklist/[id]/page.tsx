@@ -22,6 +22,7 @@ import {
 } from '@mui/material';
 import {
   Add,
+  KeyboardArrowUp,
   PictureAsPdf,
   FileDownload,
   Edit,
@@ -62,6 +63,7 @@ export default function ChecklistDetailPage({
   });
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const {
     currentChecklist,
@@ -205,6 +207,27 @@ export default function ChecklistDetailPage({
       });
     }
   };
+
+  const handleScrollTop = () => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -477,7 +500,7 @@ export default function ChecklistDetailPage({
           </Box>
         </Paper>
 
-        {/* Floating Action Button for mobile */}
+        {/* Floating Action Button for mobile - Add item */}
         <Fab
           color="primary"
           aria-label="add item"
@@ -491,6 +514,27 @@ export default function ChecklistDetailPage({
         >
           <Add />
         </Fab>
+
+        {/* Scroll to top FAB */}
+        {showScrollTop && (
+          <Fab
+            color="default"
+            aria-label="scroll to top"
+            sx={{
+              position: 'fixed',
+              bottom: 88,
+              right: 16,
+              bgcolor: 'background.paper',
+              boxShadow: 4,
+              '&:hover': {
+                bgcolor: 'grey.100',
+              },
+            }}
+            onClick={handleScrollTop}
+          >
+            <KeyboardArrowUp />
+          </Fab>
+        )}
       </Container>
 
       {/* Add Item Dialog */}
